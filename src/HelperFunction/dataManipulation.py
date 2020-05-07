@@ -400,8 +400,7 @@ class HelperFunction:
             rho_l = rho_l[rho_l > 0]
 
             addError = K.sum(K.square(rho_l))
-            
-        
+                    
             return K.mean(K.square(yTrue - yPred)) + addError
         return loss
               
