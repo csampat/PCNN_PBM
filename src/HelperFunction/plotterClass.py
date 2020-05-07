@@ -82,10 +82,26 @@ class PlotterClass:
         plt.legend(legstr, loc='upper right')
         plt.show()
     
-    def parityPlot(self,test_predictions,test_data,title):
+    def parityPlot(self,test_data,test_predictions,title):
         plt.axes(aspect='equal')
-        plt.scatter(test_data, test_predictions)
+        labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        plt.scatter(test_data,test_predictions)
         plt.title(title + ' Parity Plot')
+        plt.xlabel('True Values')
+        plt.ylabel('Predictions')
+        # lims = [np.floor(min(test_data)), np.round(max(test_data),decimals=0)]
+        lims = [0,1]
+        plt.xlim(lims)
+        plt.ylim(lims)
+        _ = plt.plot(lims, lims)
+    
+    def parityPlot_dens(self,test_data,test_predictions,title):
+        plt.axes(aspect='equal')
+        predicitons = test_predictions[0:10080]
+        d = pd.DataFrame(test_data['Granule_density'])
+        test = d.to_numpy().flatten()
+        plt.scatter(test, predicitons)
+        plt.title(title + ' Density Parity Plot')
         plt.xlabel('True Values')
         plt.ylabel('Predictions')
         # lims = [np.floor(min(test_data)), np.round(max(test_data),decimals=0)]

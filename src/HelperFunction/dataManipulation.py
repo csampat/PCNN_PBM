@@ -23,7 +23,7 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam, SGD
 
 class HelperFunction:
-    def __init__(self, dataFile, sieveCut, yieldStrength=1e5):
+    def __init__(self, dataFile, sieveCut, yieldStrength=1e4):
         self.sieveCut = sieveCut
         self.dataFile = dataFile
         self.yieldStrength = yieldStrength
@@ -32,6 +32,9 @@ class HelperFunction:
     def norm(self, x, train_stats):
         return (x - train_stats['min']) / (train_stats['max'] - train_stats['min'])
         #return (x - train_stats['mean']) / train_stats['std']
+    
+    def norm_dens(self,x):
+        return (x / 1000)
 
     
     def normedDataSplit(self, dataFile):
@@ -79,8 +82,8 @@ class HelperFunction:
         test_label_stats = test_labels['Granule_density'].describe()
         test_label_stats = test_label_stats.transpose()
 
-        train_labels['Granule_density'] = self.norm(train_labels['Granule_density'], train_label_stats)
-        test_labels['Granule_density'] = self.norm(test_labels['Granule_density'], test_label_stats)
+        train_labels['Granule_density'] = self.norm_dens(train_labels['Granule_density'])
+        test_labels['Granule_density'] = self.norm_dens(test_labels['Granule_density'])
 
         return normed_train_dataset, train_labels, normed_test_dataset, test_labels
 
@@ -111,7 +114,7 @@ class HelperFunction:
             tf.keras.layers.Dense(nNodes, activation=actFn, input_shape=[len(normed_train_dataset.keys())]),
             tf.keras.layers.Dense(nNodes, activation=actFn),
             tf.keras.layers.Dense(nNodes, activation=actFn),
-            tf.keras.layers.Dense(nOutput, activation='sigmoid')])
+            tf.keras.layers.Dense(nOutput, activation='relu')])
     
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False),
                   loss='mse', metrics = ['mae','mse'])
@@ -125,9 +128,9 @@ class HelperFunction:
         model = tf.keras.Sequential([
             tf.keras.layers.Dense(nNodes, activation=actFn, 
                                   input_shape=[len(normed_train_dataset.keys())], 
-                                  kernel_regularizer=regularizers.l2(0.001),),
-            tf.keras.layers.Dense(nNodes, activation=actFn, kernel_regularizer=regularizers.l2(0.001),),
-            tf.keras.layers.Dense(nOutput, activation='sigmoid')])
+                                  activity_regularizer=regularizers.l2(0.001),),
+            tf.keras.layers.Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l2(0.001),),
+            tf.keras.layers.Dense(nOutput, activation='relu')])
     
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False),
                   loss='mse', metrics = ['mae','mse'])
@@ -142,9 +145,9 @@ class HelperFunction:
         model = tf.keras.Sequential([
             tf.keras.layers.Dense(nNodes, activation=actFn, 
                                   input_shape=[len(normed_train_dataset.keys())], 
-                                  kernel_regularizer=regularizers.l2(0.001),),
-            tf.keras.layers.Dense(nNodes, activation=actFn, kernel_regularizer=regularizers.l2(0.001),),
-            tf.keras.layers.Dense(nOutput, activation='sigmoid')])
+                                  activity_regularizer=regularizers.l2(0.001),),
+            tf.keras.layers.Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l2(0.001),),
+            tf.keras.layers.Dense(nOutput, activation='relu')])
     
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False),
                   loss=self.lossFunc_StdeOnly, metrics = ['mae','mse'])
@@ -160,7 +163,7 @@ class HelperFunction:
                                   input_shape=[len(normed_train_dataset.keys())]),
             tf.keras.layers.Dense(nNodes, activation=actFn),
             tf.keras.layers.Dense(nNodes, activation=actFn),
-            tf.keras.layers.Dense(nOutput, activation='sigmoid')])
+            tf.keras.layers.Dense(nOutput, activation='relu')])
     
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False),
                   loss=self.lossFunc_StdeSmax, metrics = ['mae','mse'])
@@ -176,7 +179,7 @@ class HelperFunction:
                                   input_shape=[len(normed_train_dataset.keys())]),
             tf.keras.layers.Dense(nNodes, activation=actFn),
             tf.keras.layers.Dense(nNodes, activation=actFn),
-            tf.keras.layers.Dense(nOutput, activation='sigmoid')])
+            tf.keras.layers.Dense(nOutput, activation='relu')])
     
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False),
                   loss=self.lossFunc_StdeOnly, metrics = ['mae','mse'])
@@ -190,9 +193,9 @@ class HelperFunction:
         model = tf.keras.Sequential([
             tf.keras.layers.Dense(nNodes, activation=actFn, 
                                   input_shape=[len(normed_train_dataset.keys())], 
-                                  kernel_regularizer=regularizers.l2(0.001),),
-            tf.keras.layers.Dense(nNodes, activation=actFn, kernel_regularizer=regularizers.l2(0.001),),
-            tf.keras.layers.Dense(nOutput, activation='sigmoid')])
+                                  activity_regularizer=regularizers.l2(0.001),),
+            tf.keras.layers.Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l2(0.001),),
+            tf.keras.layers.Dense(nOutput, activation='relu')])
     
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False),
                   loss=self.lossFunc_StdeSmax, metrics = ['mae','mse'])
@@ -201,34 +204,15 @@ class HelperFunction:
                             validation_split = 0.33, verbose=0, callbacks=self.get_callbacks(patience_model))
         
         return model, history
-    
-    
-    def build_train_PINNwithDensity(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=8, actFn='relu', EPOCHS=100):
-        model = tf.keras.Sequential([
-                tf.keras.layers.Dense(nNodes, activation=actFn, 
-                                    input_shape=[len(normed_train_dataset.keys())], 
-                                    kernel_regularizer=regularizers.l2(0.001),),
-                tf.keras.layers.Dense(nNodes, activation=actFn, kernel_regularizer=regularizers.l2(0.001),),
-                tf.keras.layers.Dense(nOutput, activation='linear')])
-        
-        
-        model.add_loss(loss)
-        model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001,momentum=0.0, nesterov=False), loss=self.lossFunc_DensityStde(model.output[:,0]),  metrics = ['mae','mse'])
-        print(model.summary())
-        history = model.fit(normed_train_dataset, train_labels, epochs=EPOCHS, 
-                                validation_split = 0.0, verbose=0, callbacks=self.get_callbacks(patience_model))
-            
-        return model, history
-
-    
+       
     def build_train_PINN_mul(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100):
 
         input_layer = Input(shape=(6,))
-        dense_1 = Dense(nNodes, activation=actFn)(input_layer)
-        dense_2 = Dense(nNodes, activation=actFn, kernel_regularizer=regularizers.l1(0.001))(dense_1)
+        dense_1 = Dense(nNodes, activation='relu')(input_layer)
+        dense_2 = Dense(nNodes, activation='relu')(dense_1)
         # separating outputs for density and GSD for custom loss function
-        output_1 = Dense(1,activation='linear')(dense_2)
-        output_2 = Dense(8,activation='sigmoid')(dense_2)
+        output_1 = Dense(1,activation='tanh',name='out1')(dense_2)
+        output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
 
         train_labels_copy = pd.DataFrame.copy(train_labels)
         label1 = train_labels['Granule_density']
@@ -238,13 +222,45 @@ class HelperFunction:
         label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
         model = Model(inputs=[input_layer], outputs=[output_1,output_2])
 
-        model.compile(optimizer=SGD(learning_rate=0.001,momentum=0.0, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=SGD(learning_rate=0.005,momentum=0.01, nesterov=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.01,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+
+        w1 = np.full(len(self.normed_train_dataset),1)
+        w2 = np.full(len(self.normed_train_dataset),1000)
         print(model.summary())
         history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
-                            verbose=1)
+                            verbose=1, validation_split=0.2,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=False)
                 
         return model, history
 
+    def build_train_PINN_mul3(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100):
+
+        input_layer = Input(shape=(6,))
+        dense_1 = Dense(nNodes, activation=actFn)(input_layer)
+        dense_2 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l1(0.1))(dense_1)
+        dense_3 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l1(0.1))(dense_2)
+        # separating outputs for density and GSD for custom loss function
+        output_1 = Dense(1,activation='relu',name='out1', activity_regularizer=regularizers.l1(0.1))(dense_3)
+        output_2 = Dense(8,activation='relu',name='out2', activity_regularizer=regularizers.l1(0.1))(dense_3)
+
+        train_labels_copy = pd.DataFrame.copy(train_labels)
+        label1 = train_labels['Granule_density']
+        labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        
+        # label2 = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
+        model = Model(inputs=[input_layer], outputs=[output_1,output_2])
+
+        # model.compile(optimizer=SGD(learning_rate=0.001,momentum=0.0, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=SGD(learning_rate=0.01),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+
+        w1 = np.full(len(self.normed_train_dataset),1)
+        w2 = np.full(len(self.normed_train_dataset),5)
+        print(model.summary())
+        history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
+                            verbose=1, validation_split=0.2,sample_weight={'out1': w1, 'out2':w2})
+                
+        return model, history
     
 ########### PHYSICS CALCULATIONS #############################################           
     def d50FromPSDCalculator(self,PSDvals):
@@ -376,26 +392,26 @@ class HelperFunction:
             Uc = np.array(Uc)
             Ys = np.array(Ys)
             b = np.power(Uc,2)
-            c = np.dot(Ys,b)
-            d = np.full(len(Uc),0.2)
-            rho_comp = np.divide(d,c)
-            
+            c = K.cast_to_floatx(np.multiply(Ys,b))
+            d = K.cast_to_floatx(np.full(len(Uc),0.25))
+            rho_comp = K.cast_to_floatx(np.divide(d,c))
+            # StDe = K.mul
             rho_l = output_1 - rho_comp
-            rho_l = rho_l > 0
+            rho_l = rho_l[rho_l > 0]
 
-            addError = K.mean(rho_l)
+            addError = K.sum(K.square(rho_l))
             
         
             return K.mean(K.square(yTrue - yPred)) + addError
         return loss
               
     def stdePreCalc(self):
-       dImp = np.array(self.normed_train_dataset['impellerDiameter'])
-       rpm = np.array(self.normed_train_dataset['rpm'])
-       m = np.dot(rpm,dImp)
+       dImp = np.array(self.dataFile['impellerDiameter'])
+       rpm = np.array(self.dataFile['rpm'])
+       m = np.multiply(rpm,dImp)
        l = len(rpm)
        a = np.full(l,((np.pi * 0.15) / 60))
-       Uc = np.dot(m,a)
+       Uc = np.multiply(m,a)
        ys = np.full(l,(1 / (2 * self.yieldStrength)))
        return Uc, ys
         
