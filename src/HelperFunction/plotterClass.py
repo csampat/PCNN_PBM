@@ -80,7 +80,6 @@ class PlotterClass:
             str1 = model + ' train'
             legstr.append(str1)
         plt.legend(legstr, loc='upper right')
-        plt.show()
     
     def parityPlot(self,test_data,test_predictions,title):
         plt.axes(aspect='equal')
@@ -120,7 +119,6 @@ class PlotterClass:
             plt.ylabel('Cummulative PSD')
             plt.legend(legend, loc='lower right')
             plt.title(str(idx))
-        plt.show()
     
             
     def expDataPlot_compare(self,test_conv1, test_conv2, test_labels1, test_labels2, testIdx,sieveCut,legend):
@@ -136,7 +134,6 @@ class PlotterClass:
             plt.ylabel('Cummulative PSD')
             plt.title(str(idx))
             plt.legend(legend, loc='lower right')
-        plt.show()
             
 
     def expDataPlot_compare3(self,test_conv1, test_conv2, test_conv3, test_labels1, testIdx,sieveCut,legend):
@@ -155,7 +152,6 @@ class PlotterClass:
             plt.ylabel('Cummulative PSD')
             plt.title(str(idx))
             plt.legend(legend, loc='lower right')
-        plt.show()
             
     def expDataPlot_comparen(self,test_conv, test_labels1, testIdx,sieveCut,legend):
         for idx in testIdx:
@@ -172,4 +168,3 @@ class PlotterClass:
             plt.ylabel('Cummulative PSD')
             plt.title(str(idx))
             plt.legend(legend, loc='lower right')
-        plt.show()

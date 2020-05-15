@@ -18,16 +18,17 @@ import keras.backend as K
 
 
 from keras import regularizers
-from keras.layers import Dense, Input, Concatenate
+from keras.layers import Dense, Input, Concatenate, Dropout
 from keras.models import Model, Sequential
-from keras.optimizers import Adam, SGD
+from keras.optimizers import Adam, SGD, RMSprop
 
 class HelperFunction:
-    def __init__(self, dataFile, sieveCut, yieldStrength=1e4):
+    def __init__(self, dataFile, sieveCut, frac=0.8, yieldStrength=1e4):
         self.sieveCut = sieveCut
         self.dataFile = dataFile
         self.yieldStrength = yieldStrength
-        self.normed_train_dataset, self.train_labels, self.normed_test_dataset, self.test_labels = self.normedDataSplitWithDensity(self.dataFile)
+        self.frac = frac
+        self.normed_train_dataset, self.train_labels, self.normed_test_dataset, self.test_labels = self.normedDataSplitWithDensity(self.dataFile,self.frac)
 
     def norm(self, x, train_stats):
         return (x - train_stats['min']) / (train_stats['max'] - train_stats['min'])
@@ -37,8 +38,8 @@ class HelperFunction:
         return (x / 1000)
 
     
-    def normedDataSplit(self, dataFile):
-        train_dataset = dataFile.sample(frac=0.8,random_state=0)
+    def normedDataSplit(self, dataFile, frac=0.8, random_state=0):
+        train_dataset = dataFile.sample(frac,random_state)
         test_dataset = dataFile.drop(train_dataset.index)
         
         labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
@@ -57,7 +58,7 @@ class HelperFunction:
         
         return normed_train_dataset, train_labels, normed_test_dataset, test_labels
     
-    def normedDataSplitWithDensity(self, dataFile):
+    def normedDataSplitWithDensity(self, dataFile, frac=0.8, random_state=0):
         train_dataset = dataFile.sample(frac=0.8,random_state=0)
         test_dataset = dataFile.drop(train_dataset.index)
         
@@ -93,7 +94,7 @@ class HelperFunction:
 
     def get_callbacks(self,pat=100):
       return [tfdocs.modeling.EpochDots(),
-              tf.keras.callbacks.EarlyStopping(monitor='mse', patience=pat)]
+              tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=pat)]
     
     def build_train_model_2intLayers(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=8, actFn='relu', EPOCHS=100):
         model = Sequential([
@@ -185,7 +186,7 @@ class HelperFunction:
                   loss=self.lossFunc_StdeOnly, metrics = ['mae','mse'])
         print(model.summary())
         history = model.fit(normed_train_dataset, train_labels, epochs=EPOCHS, 
-                            validation_split = 0.33, verbose=0, callbacks=self.get_callbacks(patience_model))
+                            validation_split = 0.0, verbose=0, callbacks=self.get_callbacks(patience_model))
         
         return model, history
     
@@ -207,13 +208,20 @@ class HelperFunction:
        
     def build_train_PINN_mul(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100):
 
+        regCons = 0.001
         input_layer = Input(shape=(6,))
-        dense_1 = Dense(nNodes, activation='relu')(input_layer)
-        dense_2 = Dense(nNodes, activation='relu')(dense_1)
+        dense_1 = Dense(nNodes, activation='sigmoid', activity_regularizer=regularizers.l1(regCons))(input_layer)
+        dense_2 = Dense(nNodes, activation='sigmoid', activity_regularizer=regularizers.l1(regCons))(dense_1)
+        dense_3 = Dense(nNodes, activation='sigmoid', activity_regularizer=regularizers.l1(regCons))(dense_2)
+        dense_4 = Dense(nNodes, activation='sigmoid', activity_regularizer=regularizers.l1(regCons))(dense_3)
+        dense_5 = Dense(nNodes, activation='sigmoid', activity_regularizer=regularizers.l1(regCons))(dense_4)
+        dense_6 = Dense(nNodes, activation='sigmoid', activity_regularizer=regularizers.l1(regCons))(dense_5)
         # separating outputs for density and GSD for custom loss function
-        output_1 = Dense(1,activation='tanh',name='out1')(dense_2)
-        output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
-
+        output_1 = Dense(1,activation='sigmoid',name='out1', activity_regularizer=regularizers.l1(regCons))(dense_6)
+        # output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
+        output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2', activity_regularizer=regularizers.l1(regCons))(dense_6)      
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
+        
         train_labels_copy = pd.DataFrame.copy(train_labels)
         label1 = train_labels['Granule_density']
         labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
@@ -222,14 +230,14 @@ class HelperFunction:
         label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
         model = Model(inputs=[input_layer], outputs=[output_1,output_2])
 
-        model.compile(optimizer=SGD(learning_rate=0.005,momentum=0.01, nesterov=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        # model.compile(optimizer=Adam(learning_rate=0.01,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-
-        w1 = np.full(len(self.normed_train_dataset),1)
-        w2 = np.full(len(self.normed_train_dataset),1000)
+        # model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.001, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.1,beta_2=0.2,epsilon=0.01,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        
+        w1 = np.full(len(self.normed_train_dataset),10)
+        w2 = np.full(len(self.normed_train_dataset),1)
         print(model.summary())
         history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
-                            verbose=1, validation_split=0.2,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=False)
+                            verbose=1, validation_split=0.2,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
                 
         return model, history
 
@@ -262,6 +270,96 @@ class HelperFunction:
                 
         return model, history
     
+
+    def build_train_PINN_l1_dropout(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100):
+        regCons = 0.4
+        doRate = 0.25
+        input_layer = Input(shape=(6,))
+        dense_1 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l1(regCons))(input_layer)
+        # dense_1 = Dropout(doRate)(dense_1)
+        dense_2 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l1(regCons))(dense_1)
+        # dense_2 = Dropout(doRate)(dense_2)
+        dense_3 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l1(regCons))(dense_2)
+        # dense_3 = Dropout(doRate)(dense_3)
+        dense_4 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l1(regCons))(dense_3)
+        dense_4 = Dropout(doRate)(dense_4)
+        # dense_5 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l1(regCons))(dense_4)
+        # # dense_5 = Dropout(doRate)(dense_5)
+        # dense_6 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l1(regCons))(dense_5)
+        # dense_6 = Dropout(doRate)(dense_6)
+        # dense_11 = Dropout(doRate)(dense_11)
+        # separating outputs for density and GSD for custom loss function
+        output_1 = Dense(1,activation='sigmoid',name='out1', activity_regularizer=regularizers.l1(regCons))(dense_4)
+        # output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2',activity_regularizer=regularizers.l1(regCons))(dense_11)
+        # output_2 = Dense(8,activation='sigmoid',name='out2',activity_regularizer=regularizers.l1(regCons))(dense_4)
+        output_2 = Dense(8,activation='sigmoid',name='out2')(dense_4)
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
+        
+        train_labels_copy = pd.DataFrame.copy(train_labels)
+        label1 = train_labels['Granule_density']
+        labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        
+        # label2 = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
+        model = Model(inputs=[input_layer], outputs=[output_1,output_2])
+        
+        # model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.001, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.1,beta_2=0.2,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        
+        w1 = np.full(len(self.normed_train_dataset),5)
+        w2 = np.full(len(self.normed_train_dataset),1)
+        print(model.summary())
+        history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
+                            verbose=1, validation_split=0.4,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
+        
+        
+        # for layer in model.layers: print(layer.get_config(), layer.get_weights())
+
+
+        return model, history
+
+    def build_train_PINN_l2_dropout(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100):
+        regCons = 0.4
+        doRate = 0.25
+        input_layer = Input(shape=(6,))
+        dense_1 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(input_layer)
+        # dense_1 = Dropout(doRate)(dense_1)
+        dense_2 = Dense(nNodes, activation=actFn)(dense_1)
+        # dense_2 = Dropout(doRate)(dense_2)
+        dense_3 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l2(regCons))(dense_2)
+        # dense_3 = Dropout(doRate)(dense_3)
+        dense_4 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(dense_3)
+        dense_4 = Dropout(doRate)(dense_4)
+        # dense_11 = Dropout(doRate)(dense_11)
+        # separating outputs for density and GSD for custom loss function
+        output_1 = Dense(1,activation='sigmoid',name='out1', activity_regularizer=regularizers.l2(regCons))(dense_4)
+        # output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2',activity_regularizer=regularizers.l2(regCons))(dense_11)
+        # output_2 = Dense(8,activation='sigmoid',name='out2',activity_regularizer=regularizers.l2(regCons))(dense_4)
+        output_2 = Dense(8,activation='sigmoid',name='out2',activity_regularizer=regularizers.l1(regCons))(dense_4)
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
+        
+        train_labels_copy = pd.DataFrame.copy(train_labels)
+        label1 = train_labels['Granule_density']
+        labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        
+        # label2 = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
+        model = Model(inputs=[input_layer], outputs=[output_1,output_2])
+        
+        # model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.001, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=Adam(learning_rate=0.005,beta_1=0.01,beta_2=0.03,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        
+        w1 = np.full(len(self.normed_train_dataset),5)
+        w2 = np.full(len(self.normed_train_dataset),1)
+        print(model.summary())
+        history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
+                            verbose=1, validation_split=0.4,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
+                
+        return model, history
+
+
 ########### PHYSICS CALCULATIONS #############################################           
     def d50FromPSDCalculator(self,PSDvals):
         sieves = len(self.sieveCut)
@@ -393,13 +491,13 @@ class HelperFunction:
             Ys = np.array(Ys)
             b = np.power(Uc,2)
             c = K.cast_to_floatx(np.multiply(Ys,b))
-            d = K.cast_to_floatx(np.full(len(Uc),0.25))
+            d = K.cast_to_floatx(np.full(len(Uc),0.3))
             rho_comp = K.cast_to_floatx(np.divide(d,c))
             # StDe = K.mul
             rho_l = output_1 - rho_comp
             rho_l = rho_l[rho_l > 0]
 
-            addError = K.sum(K.square(rho_l))
+            addError = K.sum(K.square(rho_l)) / len(Uc)
                     
             return K.mean(K.square(yTrue - yPred)) + addError
         return loss
@@ -432,7 +530,11 @@ class HelperFunction:
         r2 = 1 - (SSres.sum() / SStol.sum())          
         return r2
         
-
+    def mapping_to_target_range(self, x, target_min=0.05, target_max=1):
+        x02 = K.sigmoid(x)
+        scale = (target_max-target_min)
+        return  x02 * scale + target_min
+        # return  x02 + target_min
     
         
 # dataFile = pd.read_csv('./PBM_simData_noSieve.csv')    
