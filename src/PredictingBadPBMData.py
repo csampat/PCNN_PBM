@@ -41,7 +41,6 @@ def main():
     test_conv_sm = np.reshape(np.ravel(test_conv_sm),(len(test_labels),9))
     testIdx = [20,50]
 
-    plt.figure()
     plotObj.expDataPlot_comparen([test_conv_sm],test_labels,testIdx,sieveCut,[model1])
     plt.show()
 
