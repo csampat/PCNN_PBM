@@ -20,7 +20,8 @@ from tensorflow import keras
 from keras import regularizers, layers, initializers
 from keras.layers import Dense, Input, Concatenate, Dropout, Conv2D
 from keras.models import Model, Sequential
-from keras.optimizers import Adam, SGD, RMSprop
+from keras.optimizers import Adam, SGD, RMSprop, Nadam
+from keras.initializers import glorot_normal, normal
 
 class HelperFunction:
     def __init__(self, dataFile, sieveCut, frac=0.8, yieldStrength=1e4):
@@ -29,6 +30,8 @@ class HelperFunction:
         self.yieldStrength = yieldStrength
         self.frac = frac
         self.normed_train_dataset, self.train_labels, self.normed_test_dataset, self.test_labels = self.normedDataSplitWithDensity(self.dataFile,self.frac)
+        self.trainingdata = pd.concat([self.normed_train_dataset, self.train_labels], axis=1)
+
 
     def norm(self, x, train_stats):
         return (x - train_stats['min']) / (train_stats['max'] - train_stats['min'])
@@ -323,22 +326,40 @@ class HelperFunction:
         regCons = 0.0
         doRate = 0.0
         input_layer = Input(shape=(6,))
-        dense_1 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(input_layer)
-        # dense_1 = Dropout(doRate)(dense_1)
+        dense_1 = Dense(nNodes, activation=actFn)(input_layer)
+        dense_1 = Dropout(doRate)(dense_1)
         dense_2 = Dense(nNodes, activation=actFn)(dense_1)
         dense_2 = Dropout(doRate)(dense_2)
-        dense_3 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l2(regCons))(dense_2)
-        # dense_3 = Dropout(doRate)(dense_3)
-        dense_4 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(dense_3)
+        dense_3 = Dense(nNodes, activation=actFn)(dense_2)
+        dense_3 = Dropout(doRate)(dense_3)
+        dense_4 = Dense(nNodes, activation=actFn)(dense_3)
         dense_4 = Dropout(doRate)(dense_4)
+        dense_5 = Dense(nNodes, activation=actFn)(dense_4)
+        dense_5 = Dropout(doRate)(dense_5)
+        dense_6 = Dense(nNodes, activation=actFn)(dense_5)
+        dense_7 = Dense(nNodes, activation=actFn)(dense_6)
+        dense_8 = Dense(nNodes, activation=actFn)(dense_7)
+        dense_9 = Dense(nNodes, activation=actFn)(dense_8)
+        dense_10 = Dense(nNodes, activation=actFn)(dense_9)
+        # dense_6 = Dropout(doRate)(dense_6)
         # dense_11 = Dropout(doRate)(dense_11)
         # separating outputs for density and GSD for custom loss function
         # output_1 = Dense(1,activation='sigmoid',name='out1', activity_regularizer=regularizers.l2(regCons))(dense_4)
-        output_1 = Dense(1,activation='linear',name='out1')(dense_4)
+        output_1 = Dense(1,activation='linear',name='out1')(dense_10)
         # output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
         # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2',activity_regularizer=regularizers.l2(regCons))(dense_11)
         # output_2 = Dense(8,activation='sigmoid',name='out2',activity_regularizer=regularizers.l2(regCons))(dense_4)
-        output_2 = Dense(8,activation='linear',name='out2',activity_regularizer=regularizers.l2(regCons))(dense_4)
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2',kernel_initializer='random_uniform',
+        #         bias_initializer=initializers.Constant(regCons))(dense_8)
+        
+        output_2 = Dense(1,activation='linear',name='out2')(dense_10)
+        output_3 = Dense(1,activation='linear',name='out3')(dense_10)
+        output_4 = Dense(1,activation='linear',name='out4')(dense_10)
+        output_5 = Dense(1,activation='linear',name='out5')(dense_10)
+        output_6 = Dense(1,activation='linear',name='out6')(dense_10)
+        output_7 = Dense(1,activation='linear',name='out7')(dense_10)
+        output_8 = Dense(1,activation='linear',name='out8')(dense_10)
+        output_9 = Dense(1,activation='linear',name='out9')(dense_10)
         # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
         
         train_labels_copy = pd.DataFrame.copy(train_labels)
@@ -347,17 +368,29 @@ class HelperFunction:
         
         # label2 = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
         label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
-        model = Model(inputs=[input_layer], outputs=[output_1,output_2])
+        # model = Model(inputs=[input_layer], outputs=[output_1,output_2])
+
+        model = Model(inputs=[input_layer], \
+            outputs=[output_1,output_2,output_3,output_4,output_5,output_6,output_7,output_8,output_9])
         
-        model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.0, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        # model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.01,beta_2=0.03,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=SGD(learning_rate=0.000004,momentum=0.0, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.9,beta_2=0.999,epsilon=1e-7,amsgrad=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
         
-        w1 = np.full(len(self.normed_train_dataset),0.005)
-        w2 = np.full(len(self.normed_train_dataset),1)
+        w1 = np.full(len(self.normed_train_dataset),8)
+        w2 = np.full(len(self.normed_train_dataset),4)
+        w3 = np.full(len(self.normed_train_dataset),4)
+        w4 = np.full(len(self.normed_train_dataset),4)
+        w5 = np.full(len(self.normed_train_dataset),1)
+        w6 = np.full(len(self.normed_train_dataset),1)
+        w7 = np.full(len(self.normed_train_dataset),1)
+        w8 = np.full(len(self.normed_train_dataset),1)
+        w9 = np.full(len(self.normed_train_dataset),1)
         print(model.summary())
-        history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
-                            verbose=0, validation_split=0.33,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
+
+        history = model.fit(normed_train_dataset, [label1, label2['Bin1'],label2['Bin2'],label2['Bin3'],label2['Bin4'],label2['Bin5'],label2['Bin6'],label2['Bin7'],label2['Coarse']], epochs=EPOCHS, verbose=0,validation_split=0.2, sample_weight={'out1': w1,'out2': w2,'out3': w3,'out4': w4,'out5': w5,'out6': w6, 'out7': w7,'out8': w8,'out9': w9}, use_multiprocessing=True)
                 
+        # history = model.fit(normed_train_dataset, [label1, label2['Bin1'],label2['Bin2'],label2['Bin3'],label2['Bin4'],label2['Bin5'],label2['Bin6'],label2['Bin7'],label2['Coarse']], epochs=EPOCHS, verbose=1,validation_split=0.33,use_multiprocessing=True)
+
         return model, history
 
     def build_train_densPINN_l2_dropout(self,normed_train_dataset, train_labels, patience_model, nNodes=16, actFn='relu', EPOCHS=100):
@@ -375,7 +408,7 @@ class HelperFunction:
         
         # separating outputs for density and GSD for custom loss function
         # output_1 = Dense(1,activation='sigmoid',name='out1', activity_regularizer=regularizers.l2(regCons))(dense_4)
-        output_1 = Dense(1,activation='sigmoid',name='out1')(dense_4)
+        output_1 = Dense(1,activation='linear',name='out1')(dense_4)
         # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
         
        
@@ -384,7 +417,7 @@ class HelperFunction:
         model = Model(inputs=[input_layer], outputs=[output_1])
         
         model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.0, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        # model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.01,beta_2=0.03,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.9,beta_2=0.999,epsilon=1e-7,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
         
         # w1 = np.full(len(self.normed_train_dataset),5)
         # w2 = np.full(len(self.normed_train_dataset),1)
@@ -394,24 +427,22 @@ class HelperFunction:
                 
         return model, history
 
-    def build_train_psdPINN_2intLayers(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=8, actFn='tanh', EPOCHS=100):
-        regCons = 0.0001
+    def build_train_psdPINN_2intLayers(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=8, actFn='relu', EPOCHS=100):
+        regCons = 0.0
         model = Sequential([
             Dense(nNodes, activation=actFn, input_shape=[len(normed_train_dataset.keys())]),
-            Dense(nNodes, activation=actFn,kernel_initializer='random_uniform',
-                bias_initializer=initializers.Constant(0.1)),
-            Dense(nNodes, activation=actFn,kernel_initializer='random_uniform',
-                bias_initializer=initializers.Constant(0.1)),
-            Dense(nOutput,kernel_initializer='random_uniform',
-                bias_initializer=initializers.Constant(0.1), activation=self.mapping_to_target_range,bias_regularizer=regularizers.l2(regCons),activity_regularizer=regularizers.l2(regCons))])
+            Dense(nNodes, activation=actFn),
+            Dense(nNodes, activation=actFn),
+            Dense(nOutput, activation='linear')])
     
-        model.compile(optimizer=SGD(learning_rate=0.0001,momentum=0.0, nesterov=False),
+        model.compile(optimizer=SGD(learning_rate=0.0001,momentum=0.00001, nesterov=False),
                   loss='mse', metrics = ['mae','mse'])
         
-        # model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.9,beta_2=0.99,epsilon=0.01,amsgrad=False),loss='mse', metrics = ['mae','mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.000003,beta_1=0.9,beta_2=0.999,epsilon=1e-7,amsgrad=True),loss='mse', metrics = ['mae','mse'])
+        # model.compile(optimizer=Nadam(learning_rate=0.00001,beta_1=0.9,beta_2=0.999,epsilon=1e-7),loss='mse', metrics = ['mae','mse'])
         print(model.summary())
         history = model.fit(normed_train_dataset, train_labels, epochs=EPOCHS, 
-                            validation_split = 0.1, verbose=1, callbacks=self.get_callbacks(patience_model))
+                            validation_split = 0.33, verbose=1, callbacks=self.get_callbacks(patience_model))
         
         return model, history
 
@@ -453,28 +484,28 @@ class HelperFunction:
         return d50
         
     
-    def stdeCalculation(self):
-        particleDensity = np.array(self.dataFile['solidDensity'])
-        dImp = np.array(self.dataFile['impellerDiameter'])
-        rpm = np.array(self.dataFile['rpm'])
-        bins = np.array((self.dataFile[['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']]).values)
+    def stdeCalculation(self,dataFile):
+        particleDensity = np.array(dataFile['solidDensity'])
+        dImp = np.array(dataFile['impellerDiameter'])
+        rpm = np.array(dataFile['rpm'])
+        bins = np.array((dataFile[['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']]).values)
         yS = np.full((len(particleDensity),), 2 * self.yieldStrength)
         l = (len(particleDensity),)
         d50 = self.d50FromPSDCalculator(bins)*1e-2
-        self.dataFile['d50'] = d50
+        dataFile['d50'] = d50
         a = np.full(l,((np.pi * 0.15) / 60))
         # nParticles = np.divide(particleDensity,((4/3)*np.pi*np.power(d50/2,3)))
         Uc = np.multiply(a,np.multiply(rpm,dImp))# shear=pi*rpm*diameter/60
         # Uc = np.multiply(d50/2,shear)
         StDe = np.divide(np.multiply(particleDensity,(np.square(Uc))), yS)
-        self.dataFile['StDe'] = StDe
-        
-        return self.dataFile
+        # dataFile['StDe'] = StDe
+        self.trainingdata['StDe'] = StDe
+        return self.trainingdata
     
-    def smaxCalculation(self):
-        particleDensity = np.array(self.dataFile['solidDensity'])
-        solidWt = np.array(self.dataFile['batch_amount'])
-        liqWt = np.array(self.dataFile['liq_amount'])
+    def smaxCalculation(self,dataFile):
+        particleDensity = np.array(dataFile['solidDensity'])
+        solidWt = np.array(dataFile['batch_amount'])
+        liqWt = np.array(dataFile['liq_amount'])
         # iniPor = np.array(self.dataFile['Initial_Porosity'])
         minPorVal = 0.18
         minPor = np.ones(len(liqWt,)) * minPorVal
@@ -484,15 +515,14 @@ class HelperFunction:
         w = np.divide(liqWt, solidWt)
         num = np.multiply(w,np.multiply(particleDensity,n1))
         smax = np.divide(num,d1)
-        self.dataFile['Smax'] = smax
-        
-        return self.dataFile
+        # dataFile['Smax'] = smax
+        self.trainingdata['Smax'] = smax
+        return self.trainingdata
         
         
             
     def stdeBasedDataRemoval(self):
-        
-        dataFile1 = self.stdeCalculation()
+        dataFile1 = self.stdeCalculation(self.trainingdata)
         dataFile1 = dataFile1.dropna()
         dataFile1 = dataFile1[dataFile1['StDe'] <= 0.2]  
         dataFile1 = dataFile1.drop(columns=['StDe'])
@@ -502,8 +532,8 @@ class HelperFunction:
     
     def stdesmaxDataRemoval(self):
       
-        dataFile1 = self.stdeCalculation()
-        dataFile1 = self.smaxCalculation()
+        dataFile1 = self.stdeCalculation(self.trainingdata)
+        dataFile1 = self.smaxCalculation(self.trainingdata)
         dataFile1 = dataFile1.dropna()
         dataFile1 = dataFile1[dataFile1['StDe'] <= 0.2]
         dataFile1 = dataFile1[dataFile1['Smax'] >= 0.2]
@@ -547,7 +577,7 @@ class HelperFunction:
             Ys = np.array(Ys)
             b = np.power(Uc,2)
             c = K.cast_to_floatx(np.multiply(Ys,b))
-            d = K.cast_to_floatx(np.full(len(Uc),0.25))
+            d = K.cast_to_floatx(np.full(len(Uc),0.2))
             rho_comp = K.cast_to_floatx(np.divide(d,c))
             # StDe = K.mul
             rho_l = rho_comp - output_1
@@ -559,8 +589,8 @@ class HelperFunction:
         return loss
               
     def stdePreCalc(self):
-       dImp = np.array(self.dataFile['impellerDiameter'])
-       rpm = np.array(self.dataFile['rpm'])
+       dImp = np.array(self.trainingdata['impellerDiameter'])
+       rpm = np.array(self.trainingdata['rpm'])
        m = np.multiply(rpm,dImp)
        l = len(rpm)
        a = np.full(l,((np.pi * 0.15) / 60))
@@ -586,8 +616,8 @@ class HelperFunction:
         r2 = 1 - (SSres.sum() / SStol.sum())          
         return r2
         
-    def mapping_to_target_range(self, x, target_min=0.2, target_max=1.1):
-        x02 = K.tanh(x)
+    def mapping_to_target_range(self, x, target_min=0.2, target_max=1.5):
+        x02 = K.relu(x)
         scale = (target_max-target_min)
         return  (x02) * scale + target_min
         # return  x02 + target_min

@@ -154,17 +154,26 @@ class PlotterClass:
             plt.legend(legend, loc='lower right')
             
     def expDataPlot_comparen(self,test_conv, test_labels1, testIdx,sieveCut,legend):
+        fig, ax = plt.subplots(int(len(testIdx)/2), 2, sharey=True)
+        counter = 0
+        col=0
         for idx in testIdx:
             pltTest1 = np.transpose(np.array(test_labels1.iloc[idx,1:8]))
             # pltTest2 = np.transpose(np.array(test_labels2.iloc[idx,:7]))
             # pltTest3 = np.transpose(np.array(test_labels3.iloc[idx,:7]))
-            plt.figure()
+            # plt.figure()
             for tc in test_conv:
-                plt.plot(sieveCut,tc[idx][1:8],'-')
-            plt.plot(sieveCut,pltTest1,'bo')
+                ax[counter,col].plot(sieveCut,tc[idx][1:8],'-')
+            ax[counter,col].plot(sieveCut,pltTest1,'bo')
             # plt.plot(sieveCut,pltTest2,'bo')
             # plt.plot(sieveCut,pltTest3,'bo')
-            plt.xlabel('Sieve Fraction')
-            plt.ylabel('Cummulative PSD')
-            plt.title(str(idx))
-            plt.legend(legend, loc='lower right')
+            ax[counter,col].set_xlabel('Sieve Fraction')
+            ax[counter,col].set_ylabel('Cummulative PSD')
+            ax[counter,col].title.set_text(str(idx))
+            if (counter < 2):
+                counter = counter + 1
+            else:
+                counter = 0
+                col = 1
+           
+        plt.legend(legend, loc='lower right')
