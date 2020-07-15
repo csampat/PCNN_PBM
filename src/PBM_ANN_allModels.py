@@ -28,11 +28,11 @@ start_time = time.time()
 sieveCut = [150,250,350,600,850,1000,1400]
 
 # Datafile without sieves
-# dataFile = pd.read_csv('./PBM_simData_solidDensity.csv')
-# dataFileWithDensity = pd.read_csv('./PBM_simData_solidDensity.csv')
+dataFile = pd.read_csv('./PBM_simData_solidDensity.csv')
+dataFileWithDensity = pd.read_csv('./PBM_simData_solidDensity.csv')
 
-dataFile = pd.read_csv('./PBM_dcontracted.csv')
-dataFileWithDensity = pd.read_csv('./PBM_dcontracted.csv')
+# dataFile = pd.read_csv('./PBM_dcontracted.csv')
+# dataFileWithDensity = pd.read_csv('./PBM_dcontracted.csv')
 
 # Creating class objects that are 
 simMod = dataManipulation.HelperFunction(dataFile,sieveCut)
@@ -69,7 +69,7 @@ model8 = 'PINN with L1'
 # model10 = 'ANN for PSD'
 
 patience_model = 10
-EPOCHS = 2
+EPOCHS = 100
 labels = ['Granule_Density','Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
 
 ################# ONLY DATA BASED MODELS #######################################
@@ -128,17 +128,18 @@ r2model_smax = stsmaxred.calculateR2(test_predictions_smax, test_labels,labels)
 
 
 '''
-EPOCHS = 50
+EPOCHS = 200
 
 ###### NEW PINN #############
-PINNdens_model, PINNdens_history = densMod.build_train_PINN_l2_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,4,'relu',EPOCHS)
-m7Time = time.time()
-
 '''
-PINNdens_model_32, PINNdens_history_32 = densMod.build_train_PINN_l1_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,16,'sigmoid',EPOCHS)
+PINNdens_model, PINNdens_history = densMod.build_train_PINN_l2_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,4,'tanh',EPOCHS)
+m7Time = time.time()
+'''
+
+PINNdens_model_32, PINNdens_history = densMod.build_train_PINN_l1_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,8,'relu',EPOCHS)
 m8Time = time.time()
 
-''' 
+ 
 ########### 
 dens_test_labels1 = test_labels.copy()
 
@@ -149,20 +150,40 @@ labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
 label2 = pd.DataFrame([dens_test_labels1.pop(i) for i in labels]).T
 ###########
 
-loss_densPINN, loss1, loss2, loss3, loss4, loss5, loss6, loss7, loss8, loss9, mse1, mse2, mse3, mse4, mse5, mse6, mse7, mse8, mse9 = PINNdens_model.evaluate(normed_test_dataset, [label1, label2['Bin1'],label2['Bin2'],label2['Bin3'],label2['Bin4'],label2['Bin5'],label2['Bin6'],label2['Bin7'],label2['Coarse']], verbose=1)
-test_predictions_densPINN = PINNdens_model.predict(normed_test_dataset)
+# loss_densPINN, loss1, loss2, loss3, loss4, loss5, loss6, loss7, loss8, loss9, mse1, mse2, mse3, mse4, mse5, mse6, mse7, mse8, mse9 = PINNdens_model.evaluate(normed_test_dataset, [label1, label2['Bin1'],label2['Bin2'],label2['Bin3'],label2['Bin4'],label2['Bin5'],label2['Bin6'],label2['Bin7'],label2['Coarse']], verbose=1)
+
+# loss_densPINN, loss1, loss2, mae1, mae2, mse1, mse2 = PINNdens_model.evaluate(normed_test_dataset, [label1, label2], verbose=1)
+
+# test_predictions_densPINN = PINNdens_model_32.predict(normed_test_dataset)
 # test_predictions_densPINN = np.concatenate((test_predictions_densPINN[0].flatten(),test_predictions_densPINN[1].flatten()))
 
-test_predictions_densPINN = np.concatenate((test_predictions_densPINN[0].flatten(),test_predictions_densPINN[1].flatten(),test_predictions_densPINN[2].flatten(),test_predictions_densPINN[3].flatten(),test_predictions_densPINN[4].flatten(),test_predictions_densPINN[5].flatten(),test_predictions_densPINN[6].flatten(),test_predictions_densPINN[7].flatten(),test_predictions_densPINN[8].flatten())) 
+# test_predictions_densPINN = np.concatenate((test_predictions_densPINN[0].flatten(),test_predictions_densPINN[1].flatten(),test_predictions_densPINN[2].flatten(),test_predictions_densPINN[3].flatten(),test_predictions_densPINN[4].flatten(),test_predictions_densPINN[5].flatten(),test_predictions_densPINN[6].flatten(),test_predictions_densPINN[7].flatten(),test_predictions_densPINN[8].flatten()),axis=0) 
 
-r2model_PINN = densMod.calculateR2(test_predictions_densPINN, test_labels,test_labels.keys())
+# r2model_PINN = densMod.calculateR2(test_predictions_densPINN, test_labels,test_labels.keys())
 
 
 
 # use density PINN trained data model
-# loss_dens, loss3_dens, loss4_dens, mae_dens, mse_dens, mae4_dens, mse4_dens = PINNdens_model_32.evaluate(dens_normed_test_dataset, [label1,label2], verbose=0)
-# test_predictions_dens = PINNdens_model_32.predict(dens_normed_test_dataset)
-# test_predictions_dens = np.concatenate((test_predictions_dens[0].flatten(),test_predictions_dens[1].flatten()))
+loss_dens, loss3_dens, loss4_dens, mae_dens, mse_dens, mae4_dens, mse4_dens = PINNdens_model_32.evaluate(dens_normed_test_dataset, [label1,label2], verbose=0)
+test_predictions_dens = PINNdens_model_32.predict(dens_normed_test_dataset)
+# test_predictions_dens = np.concatenate((np.reshape(test_predictions_dens[0]),(len(label1),1),np.reshape(np.ravel(test_predictions_dens[1]),len(label1)*len(label2.keys()))))
+
+a = np.array(test_predictions_dens[0])
+b = np.array(test_predictions_dens[1])
+d = np.zeros((len(a),len(b[0])+1))
+
+for i in range(len(a)):
+    d[i,0] = a[i]
+    for j in range(1,len(b[0])+1):
+        d[i,j] = b[i,j-1]
+
+test_predictions_dens = d.flatten()
+
+
+
+r2model_PINN = densMod.calculateR2(test_predictions_dens, test_labels,test_labels.keys())
+
+
 '''
 # # use all data model to predict small data
 
@@ -221,7 +242,8 @@ print("Test set Loss(MSE), MAE and R^2 of ", model2 ,"is",  loss_stref, mae_stre
 print("Test set Loss(MSE), MAE and R^2 of ", model3 ,"is",  loss_smax, mae_smax, r2model_smax)
 # print("Test set Loss(MSE), MAE and R^2 of ", model4 ,"is",  loss_PINNstde, mae_PINNstde, r2model_PINNstde)
 # print("Test set Loss(MSE), MAE and R^2 of ", model5 ,"is",  loss_PINNboth, mae_PINNboth, r2model_PINNboth)
-print("Test set Loss(MSE) and R^2 of ", model7 ,"is",  loss_densPINN, r2model_PINN)
+# print("Test set Loss(MSE) and R^2 of ", model7 ,"is",  loss_densPINN, r2model_PINN)
+print("Test set Loss(MSE) and R^2 of ", model8 ,"is",  loss_dens, r2model_PINN)
 # print("Test set Loss(MSE), MAE and R^2 of ", model8 ,"is",  loss_dens, mae_dens, r2model_dens)
 # print("Test set Loss(MSE), MAE and R^2 of ", model9 ,"is",  (loss_densMod), (mae_densMod), r2model_densPINN)
 # print("Test set Loss(MSE), MAE and R^2 of ", model10 ,"is",  (loss_finMod), (mae_finMod), r2model_ANNPSD)
@@ -246,7 +268,7 @@ print("--------All models were saved successfully--------")
 # All plots start here
 # comparing 3 models
 plt.figure()
-plotObj.history_plotter_comparen_noval([history, stref_history,smaxref_history,PINNdens_history], 'loss', [model1, model2, model3,model7])
+plotObj.history_plotter_comparen_noval([history, stref_history,smaxref_history,PINNdens_history], 'loss', [model1, model2, model3,model8])
 
 # plt.figure()
 # plotObj.parityPlot_dens(test_labels, test_predictions_densPINN, model7)
@@ -269,7 +291,7 @@ plotObj.history_plotter_comparen_noval([history, stref_history,smaxref_history,P
 # plt.figure()
 # plotObj.parityPlot(test_labels, test_predictions_dens, model8)
 plt.figure()
-plotObj.parityPlot(test_labels, test_predictions_densPINN, model7)
+plotObj.parityPlot(test_labels, test_predictions_dens, model8)
 # plt.figure()
 # plotObj.parityPlot(test_labels, test_predictions_smax, model3)
 
@@ -297,7 +319,7 @@ test_conv_stref = np.reshape(np.ravel(test_conv_stref),(len(test_labels),9))
 # test_conv_dens = np.array(test_predictions_dens)
 # test_conv_dens = np.reshape(np.ravel(test_conv_dens),(len(dens_test_labels),9))
 
-test_conv_PINNdens = np.array(test_predictions_densPINN)
+test_conv_PINNdens = np.array(test_predictions_dens)
 test_conv_PINNdens = np.reshape(np.ravel(test_conv_PINNdens),(len(dens_test_labels),9))
 
 test_conv_smax = np.array(test_predictions_smax)
