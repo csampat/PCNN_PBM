@@ -308,8 +308,8 @@ class HelperFunction:
         label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
         model = Model(inputs=[input_layer], outputs=[output_1,output_2])
         
-        # model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.001, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.1,beta_2=0.2,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=SGD(learning_rate=0.001,momentum=0.8, nesterov=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.1,beta_2=0.2,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
         
         w1 = np.full(len(self.normed_train_dataset),5)
         w2 = np.full(len(self.normed_train_dataset),1)
@@ -570,7 +570,7 @@ class HelperFunction:
             Ys = np.array(Ys)
             b = np.power(Uc,2)
             c = K.cast_to_floatx(np.multiply(Ys,b))
-            d = K.cast_to_floatx(np.full(len(Uc),0.6))
+            d = K.cast_to_floatx(np.full(len(Uc),0.2))
             rho_comp = K.cast_to_floatx(np.divide(d,c))
             # StDe = K.mul
             rho_l = rho_comp - output_1

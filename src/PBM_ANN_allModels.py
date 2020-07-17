@@ -69,7 +69,7 @@ model8 = 'PINN with L1'
 # model10 = 'ANN for PSD'
 
 patience_model = 10
-EPOCHS = 100
+EPOCHS = 200
 labels = ['Granule_Density','Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
 
 ################# ONLY DATA BASED MODELS #######################################
@@ -136,7 +136,7 @@ PINNdens_model, PINNdens_history = densMod.build_train_PINN_l2_dropout(dens_norm
 m7Time = time.time()
 '''
 
-PINNdens_model_32, PINNdens_history = densMod.build_train_PINN_l1_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,8,'relu',EPOCHS)
+PINNdens_model_32, PINNdens_history = densMod.build_train_PINN_l1_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,16,'tanh',EPOCHS)
 m8Time = time.time()
 
  
