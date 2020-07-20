@@ -47,7 +47,6 @@ class PlotterClass:
         plt.xlabel('epoch')
         plt.ylabel(name)
         plt.legend([modelname1 + 'train',modelname1 +'test',modelname2 + 'train',modelname2 +'test',modelname3 + 'train',modelname3 +'test'], loc='upper right')
-        plt.show()
         
         
 
