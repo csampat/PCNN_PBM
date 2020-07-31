@@ -65,7 +65,7 @@ class PlotterClass:
             legstr.append(str1)
             legstr.append(str2)
         plt.legend(legstr, loc='upper right')
-        plt.show()
+        # plt.show()
 
     def history_plotter_comparen_noval(self,history, name, modelname):
         for hist in history:

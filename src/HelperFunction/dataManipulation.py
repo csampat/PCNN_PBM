@@ -16,6 +16,8 @@ import tensorflow_docs.modeling
 import tensorflow_docs.plots
 import keras.backend as K
 from tensorflow import keras
+import talos
+
 
 from keras import regularizers, layers, initializers
 from keras.layers import Dense, Input, Concatenate, Dropout, Conv2D
@@ -23,6 +25,7 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam, SGD, RMSprop, Nadam
 from keras.initializers import glorot_normal, normal
 
+from talos.model.normalizers import lr_normalizer
 
 class HelperFunction:
     def __init__(self, dataFile, sieveCut, frac=0.8, yieldStrength=1e4):
@@ -341,72 +344,56 @@ class HelperFunction:
         w2 = np.full(len(self.normed_train_dataset),1)
         print(model.summary())
         history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
-                            verbose=1, validation_split=0.33,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
+                            verbose=0, validation_split=0.33,sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
         
-        
+
         # for layer in model.layers: print(layer.get_config(), layer.get_weights())
-
-
         return model, history
 
-    def build_train_densPINN_l2_dropout(self,normed_train_dataset, train_labels, patience_model, nNodes=16, actFn='relu', EPOCHS=100):
-        regCons = 0.0
-        doRate = 0.0
-        input_layer = Input(shape=(6,))
-        dense_1 = Dense(nNodes, activation=actFn)(input_layer)
-        # dense_1 = Dropout(doRate)(dense_1)
-        dense_2 = Dense(nNodes, activation=actFn)(dense_1)
-        dense_2 = Dropout(doRate)(dense_2)
-        dense_3 = Dense(nNodes, activation=actFn)(dense_2)
-        # dense_3 = Dropout(doRate)(dense_3)
-        dense_4 = Dense(nNodes, activation=actFn)(dense_3)
-        dense_4 = Dropout(doRate)(dense_4)
-        dense_5 = Dense(nNodes, activation=actFn)(dense_4)
-        dense_6 = Dense(nNodes, activation=actFn)(dense_5)
-        dense_7 = Dense(nNodes, activation=actFn)(dense_6)
-        dense_8 = Dense(nNodes, activation=actFn)(dense_7)
 
+
+     # redefining PINN model for hyperparameter scan   
+    def hyperparameter_Scan(self,normed_train_dataset, train_labels, test_data, test_labels, param):
+    #patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100,learnRate=0.001,momentumN=0.0,lastActFn='linear',regCons=0.0,doRate=0.0):
+        input_layer = Input(shape=(len(normed_train_dataset.keys()),))
+        dense_1 = Dense(param['nNodes'], activation=param["activation"],activity_regularizer=regularizers.l2(param["regCons"]))(input_layer)
+        # dense_1 = Dropout(param["dropRate"])(dense_1)
+        dense_2 = Dense(param['nNodes'], activation=param["activation"],activity_regularizer=regularizers.l2(param["regCons"]))(dense_1)
+        dense_2 = Dropout(param["dropRate"])(dense_2)
+        dense_3 = Dense(param['nNodes'], activation=param["activation"], activity_regularizer=regularizers.l2(param["regCons"]))(dense_2)
+        # dense_3 = Dropout(param["dropRate"])(dense_3)
+        dense_4 = Dense(param['nNodes'], activation=param["activation"],activity_regularizer=regularizers.l2(param["regCons"]))(dense_3)
+        dense_4 = Dropout(param["dropRate"])(dense_4)
         # separating outputs for density and GSD for custom loss function
-        # output_1 = Dense(1,activation='sigmoid',name='out1', activity_regularizer=regularizers.l2(regCons))(dense_4)
-        output_1 = Dense(1,activation='linear',name='out1')(dense_8)
-        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
+        output_1 = Dense(1,activation=param["last_activation"],name='out1', activity_regularizer=regularizers.l2(param["regCons"]))(dense_4)
+        # output_2 = Dense(8,activation='sigmoid',name='out2',activity_regularizer=regularizers.l1(regCons))(dense_4)
+        output_2 = Dense(8,activation=param["last_activation"],name='out2', activity_regularizer=regularizers.l2(param["regCons"]))(dense_4)
         
-       
+        train_labels_copy = pd.DataFrame.copy(train_labels)
+        label1 = train_labels['Granule_density']
+        labels = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
+        
         # label2 = ['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']
-        # label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
-        model = Model(inputs=[input_layer], outputs=[output_1])
+        label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
+        model = Model(inputs=[input_layer], outputs=[output_1,output_2])
         
-        model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.0, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        # model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.9,beta_2=0.999,epsilon=1e-7,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=param['optimizer'](lr=lr_normalizer(param['learningRate'],param['optimizer'])),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.1,beta_2=0.2,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
         
-        # w1 = np.full(len(self.normed_train_dataset),5)
-        # w2 = np.full(len(self.normed_train_dataset),1)
+        w1 = np.full(len(self.normed_train_dataset),5)
+        w2 = np.full(len(self.normed_train_dataset),1)
         print(model.summary())
-        history = model.fit(normed_train_dataset, [train_labels], epochs=EPOCHS, 
-                            verbose=0, validation_split=0.33,use_multiprocessing=True, callbacks=self.get_callbacks(patience_model))
-                
-        return model, history
+        test_label_copy = pd.DataFrame.copy(test_labels)
+        tlabel1 = test_labels['Granule_density']
+        tlabel2 = pd.DataFrame([test_label_copy.pop(i) for i in labels]).T
 
-    def build_train_psdPINN_2intLayers(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=8, actFn='relu', EPOCHS=100):
-        regCons = 0.0
-        model = Sequential([
-            Dense(nNodes, activation=actFn, input_shape=[len(normed_train_dataset.keys())]),
-            Dense(nNodes, activation=actFn),
-            Dense(nNodes, activation=actFn),
-            Dense(nOutput, activation='linear')])
-    
-        model.compile(optimizer=SGD(learning_rate=0.0001,momentum=0.00001, nesterov=False),
-                  loss='mse', metrics = ['mae','mse'])
+        out = model.fit(normed_train_dataset, [label1, label2], epochs=param['epochs'], 
+                            verbose=0, validation_data=[test_data,[tlabel1,tlabel2]],sample_weight={'out1': w1, 'out2':w2},use_multiprocessing=True)
         
-        # model.compile(optimizer=Adam(learning_rate=0.000003,beta_1=0.9,beta_2=0.999,epsilon=1e-7,amsgrad=True),loss='mse', metrics = ['mae','mse'])
-        # model.compile(optimizer=Nadam(learning_rate=0.00001,beta_1=0.9,beta_2=0.999,epsilon=1e-7),loss='mse', metrics = ['mae','mse'])
-        print(model.summary())
-        history = model.fit(normed_train_dataset, train_labels, epochs=EPOCHS, 
-                            validation_split = 0.33, verbose=1, callbacks=self.get_callbacks(patience_model))
-        
-        return model, history
 
-    
+        # for layer in model.layers: print(layer.get_config(), layer.get_weights())
+        return out, model
+
 ########### PHYSICS CALCULATIONS #############################################           
     def d50FromPSDCalculator(self,PSDvals):
         sieves = len(self.sieveCut)
