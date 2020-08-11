@@ -11,13 +11,12 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 import matplotlib.pyplot as plt
-import tensorflow_docs as tfdocs
-import tensorflow_docs.modeling
-import tensorflow_docs.plots
 import keras.backend as K
 from tensorflow import keras
 import talos
+import tensorflow_docs as tfdocs
 
+from tensorflow_docs import modeling
 
 from keras import regularizers, layers, initializers
 from keras.layers import Dense, Input, Concatenate, Dropout, Conv2D
@@ -128,7 +127,7 @@ class HelperFunction:
 
 
     def get_callbacks(self,pat=10):
-      return [tfdocs.modeling.EpochDots(),
+      return [modeling.EpochDots(),
               tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=pat)]
     
     def build_train_model_2intLayers(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100,learnRate=0.001,momentumN=0.0,lastActFn='linear',regCons=0.0,doRate=0.0):
@@ -382,7 +381,7 @@ class HelperFunction:
         
         w1 = np.full(len(self.normed_train_dataset),5)
         w2 = np.full(len(self.normed_train_dataset),1)
-        print(model.summary())
+        # print(model.summary())
         test_label_copy = pd.DataFrame.copy(test_labels)
         tlabel1 = test_labels['Granule_density']
         tlabel2 = pd.DataFrame([test_label_copy.pop(i) for i in labels]).T

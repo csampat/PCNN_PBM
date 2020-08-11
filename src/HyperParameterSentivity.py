@@ -34,18 +34,18 @@ pinn_train_data, pinn_train_labels, pinn_test_data, pinn_test_labels = pinnMod.n
 PINN_name = 'PINN model'
 
 hyperparameters = {
-    "epochs": [10,25,50,100,200,300,400], 
+    "epochs": [200,400], 
     "activation": ['tanh','relu'],
     "last_activation": ['linear'],
-    "nNodes": [4,8,12,16,24,32],
-    "learningRate": [0.3,0.03,0.003,0.0003],
-    "dropRate": [0.0,0.1,0.2,0.4,0.5],
-    "regCons": [0.0,0.01,0.001,0.1],
+    "nNodes": [8,16,32],
+    "learningRate": [0.003,0.0003,0.03],
+    "dropRate": [0.0,0.25,0.5],
+    "regCons": [0.0,0.001],
     "patienceModel": [10],
     "optimizer": [Adam,SGD]
 }
 
-scan_object = talos.Scan(pinn_train_data,pinn_train_labels,params=hyperparameters,model=pinnMod.hyperparameter_Scan,experiment_name='PINN_model',x_val=pinn_test_data,y_val=pinn_test_labels)
+scan_object = talos.Scan(pinn_train_data,pinn_train_labels,params=hyperparameters,model=pinnMod.hyperparameter_Scan,experiment_name='PINN_model',x_val=pinn_test_data,y_val=pinn_test_labels,print_params=True,random_method='latin_improved')
 
 
 # accessing the results data frame
@@ -95,5 +95,14 @@ analyze_object.plot_corr('val_loss', ['out1_mse', 'out2_mse', 'loss', 'val_loss'
 
 # a four dimensional bar grid
 analyze_object.plot_bars('epochs', 'val_loss', 'activation', 'optimizer')
+analyze_object.plot_bars('nNodes', 'val_loss', 'activation', 'optimizer')
+analyze_object.plot_bars('learningRate', 'val_loss', 'activation', 'optimizer')
 
+scan_object.print_params()
+
+r = talos.Reporting('experimental_log_1.csv')
+r.data
+r.low('val_loss')
+
+r.plot_hist
 plt.show()
