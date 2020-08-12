@@ -176,3 +176,18 @@ class PlotterClass:
                 col = 1
            
         plt.legend(legend, loc='lower right')
+
+    def sensPlot_2(self,sobolDict, names, dictName):
+        fig,ax = plt.subplots()
+        x_pos = np.arange(len(names))
+        ax.bar(x_pos+0.00,sobolDict['S1'],color='b',width=0.25,yerr=sobolDict['S1_conf'])
+        ax.bar(x_pos+0.25,sobolDict['ST'],color='r',width=0.25,yerr=sobolDict['ST_conf'])
+        # ax.bar(samplesize['names'],S_gd['S2'],yerr=S_gd['S2_conf'])
+        ax.set_ylabel('Sensitivity ')
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(names)
+        ax.yaxis.grid(True)
+        ax.set_title(dictName)
+
+        plt.savefig(dictName+'.png')
+
