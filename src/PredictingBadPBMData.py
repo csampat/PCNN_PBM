@@ -85,7 +85,7 @@ def predictAndPlot(dataSet, actualVal, sieveCut, testIdx, modelNames, frac_retra
 
 def main():
     noGrowthFile = pd.read_csv('./PBM_noGrowth.csv')
-    slowGrowthFile = pd.read_csv('./PBM_slowGrowth.csv')
+    fastGrowthFile = pd.read_csv('./PBM_fastGrowth.csv')
     stdeViolationFile = pd.read_csv('./PBM_stdeViolation.csv')
     sieveCut = [150,250,350,600,850,1000,1400]
     testIdx = [20,50,100,250,500,600]
@@ -98,12 +98,12 @@ def main():
     dataSet_noGrowth, actualVal_noGrowth = hFun_noGrowth.normedDataLabelSplit(noGrowthFile)
 
     # Slow growth
-    hFun_slowGrowth = dataManipulation.HelperFunction(slowGrowthFile,sieveCut,frac_retrain)
-    dataSet_slowGrowth, actualVal_slowGrowth = hFun_slowGrowth.normedDataLabelSplit(noGrowthFile)
+    hFun_fastGrowth = dataManipulation.HelperFunction(fastGrowthFile,sieveCut,frac_retrain)
+    dataSet_fastGrowth, actualVal_fastGrowth = hFun_fastGrowth.normedDataLabelSplit(fastGrowthFile)
     
     #stde violation
     hFun_stdeVio = dataManipulation.HelperFunction(stdeViolationFile,sieveCut,frac_retrain)
-    dataSet_stdeVio, actualVal_stdeVio = hFun_stdeVio.normedDataLabelSplit(noGrowthFile)
+    dataSet_stdeVio, actualVal_stdeVio = hFun_stdeVio.normedDataLabelSplit(stdeViolationFile)
 
     
     
@@ -117,7 +117,7 @@ def main():
     # no Growth file
     predictAndPlot(dataSet_noGrowth, actualVal_noGrowth, sieveCut, testIdx, [simModel,stdeModel,stsmaxModel,pinnModel])
     # Slow Growth file
-    predictAndPlot(dataSet_slowGrowth, actualVal_slowGrowth, sieveCut, testIdx, [simModel,stdeModel,stsmaxModel,pinnModel])
+    predictAndPlot(dataSet_fastGrowth, actualVal_fastGrowth, sieveCut, testIdx, [simModel,stdeModel,stsmaxModel,pinnModel])
     # StDe violated file
     predictAndPlot(dataSet_stdeVio, actualVal_stdeVio, sieveCut, testIdx, [simModel,stdeModel,stsmaxModel,pinnModel])
 

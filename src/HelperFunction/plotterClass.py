@@ -15,9 +15,16 @@ import pandas as pd
 
 class PlotterClass:
     
+    def __init__(self):
+        self.font = {'family': 'serif',
+        'color':  'black',
+        'weight': 'normal',
+        'size': 20,
+        }
     
     def history_plotter(self,history, name, valname, modelname):
         plt.plot(history.history[name])
+        plt.rcParams.update({'font.size': 16})
         plt.plot(history.history[valname],'--')
         plt.title(modelname + name )
         plt.xlabel('epoch')
@@ -27,6 +34,7 @@ class PlotterClass:
 
     def history_plotter_compare(self,history1, history2, name, valname, modelname1, modelname2):
         plt.plot(history1.history[name])
+        plt.rcParams.update({'font.size': 16})
         plt.plot(history1.history[valname],'--')
         plt.plot(history2.history[name])
         plt.plot(history2.history[valname],'--')
@@ -37,6 +45,7 @@ class PlotterClass:
         plt.show()
     
     def history_plotter_compare3(self,history1, history2, history3, name, valname, modelname1, modelname2, modelname3):
+        plt.rcParams.update({'font.size': 16})
         plt.plot(history1.history[name])
         plt.plot(history1.history[valname],'--')
         plt.plot(history2.history[name])
@@ -51,11 +60,13 @@ class PlotterClass:
         
 
     def history_plotter_comparen(self,history, name, valname, modelname):
+        plt.rcParams.update({'font.size': 16})
         for hist in history:
             plt.plot(hist.history[name])
             plt.plot(hist.history[valname],'--')
         
         plt.title(name)
+        plt.rcParams.update({'font.size': 16})
         plt.xlabel('epoch')
         plt.ylabel(name)
         legstr = []
@@ -65,12 +76,13 @@ class PlotterClass:
             legstr.append(str1)
             legstr.append(str2)
         plt.legend(legstr, loc='upper right')
-        # plt.show()
+        plt.savefig('historyComparison_allModels.png')
+
 
     def history_plotter_comparen_noval(self,history, name, modelname):
         for hist in history:
             plt.plot(hist.history[name])
-        
+        plt.rcParams.update({'font.size': 16})
         plt.title(name)
         plt.xlabel('epoch')
         plt.ylabel(name)
@@ -87,14 +99,17 @@ class PlotterClass:
         plt.title(title + ' Parity Plot')
         plt.xlabel('True Values')
         plt.ylabel('Predictions')
+        plt.rcParams.update({'font.size': 16})
         # lims = [np.floor(min(test_data)), np.round(max(test_data),decimals=0)]
         lims = [0,1]
         plt.xlim(lims)
         plt.ylim(lims)
         _ = plt.plot(lims, lims)
+        plt.savefig(title+'_parityPlot.png')
     
     def parityPlot_dens(self,test_data,test_predictions,title):
         plt.axes(aspect='equal')
+        plt.rcParams.update({'font.size': 16})
         predicitons = test_predictions[0:10080]
         d = pd.DataFrame(test_data['Granule_density'])
         test = d.to_numpy().flatten()
@@ -107,8 +122,10 @@ class PlotterClass:
         plt.xlim(lims)
         plt.ylim(lims)
         _ = plt.plot(lims, lims)
+        plt.savefig(title+'_parityPlotDenisty.png')
         
     def expDataPlot(self,test_conv,test_labels,testIdx,sieveCut,legend):
+        plt.rcParams.update({'font.size': 16})
         for idx in testIdx:
             pltTest = np.transpose(np.array(test_labels.iloc[idx,1:8]))
             plt.figure()
@@ -121,6 +138,7 @@ class PlotterClass:
     
             
     def expDataPlot_compare(self,test_conv1, test_conv2, test_labels1, test_labels2, testIdx,sieveCut,legend):
+        plt.rcParams.update({'font.size': 16})
         for idx in testIdx:
             pltTest1 = np.transpose(np.array(test_labels1.iloc[idx,:7]))
             pltTest2 = np.transpose(np.array(test_labels2.iloc[idx,:7]))
@@ -136,6 +154,7 @@ class PlotterClass:
             
 
     def expDataPlot_compare3(self,test_conv1, test_conv2, test_conv3, test_labels1, testIdx,sieveCut,legend):
+        plt.rcParams.update({'font.size': 16})
         for idx in testIdx:
             pltTest1 = np.transpose(np.array(test_labels1.iloc[idx,:7]))
             # pltTest2 = np.transpose(np.array(test_labels2.iloc[idx,:7]))
@@ -154,6 +173,7 @@ class PlotterClass:
             
     def expDataPlot_comparen(self,test_conv, test_labels1, testIdx,sieveCut,legend):
         fig, ax = plt.subplots(int(len(testIdx)/2), 2, sharey=True)
+        plt.rcParams.update({'font.size': 16})
         counter = 0
         col=0
         for idx in testIdx:
@@ -176,12 +196,14 @@ class PlotterClass:
                 col = 1
            
         plt.legend(legend, loc='lower right')
+        plt.savefig('ExpDataComparisonPlot.png')
 
     def sensPlot_2(self,sobolDict, names, dictName):
         fig,ax = plt.subplots()
+        plt.rcParams.update({'font.size': 16})
         x_pos = np.arange(len(names))
         ax.bar(x_pos+0.00,sobolDict['S1'],color='b',width=0.25,yerr=sobolDict['S1_conf'])
-        ax.bar(x_pos+0.25,sobolDict['ST'],color='r',width=0.25,yerr=sobolDict['ST_conf'])
+        # ax.bar(x_pos+0.25,sobolDict['ST'],color='r',width=0.25,yerr=sobolDict['ST_conf'])
         # ax.bar(samplesize['names'],S_gd['S2'],yerr=S_gd['S2_conf'])
         ax.set_ylabel('Sensitivity ')
         ax.set_xticks(x_pos)

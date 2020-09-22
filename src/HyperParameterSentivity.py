@@ -40,7 +40,7 @@ hyperparameters = {
     "nNodes": [8,16,32],
     "learningRate": [0.003,0.0003,0.03],
     "dropRate": [0.0,0.25,0.5],
-    "regCons": [0.0,0.001],
+    "regCons": [0.0,0.0001],
     "patienceModel": [10],
     "optimizer": [Adam,SGD]
 }
@@ -75,10 +75,10 @@ analyze_object.rounds()
 analyze_object.low('val_loss')
 
 # get the best paramaters
-analyze_object.best_params('val_loss', ['out1_mse', 'out2_mse', 'loss', 'val_loss'])
+analyze_object.best_params('val_loss', ['Density_mse', 'GSD_mse', 'loss', 'val_loss'])
 
 # get correlation for hyperparameters against a metric
-analyze_object.correlate('val_loss', ['out1_mse', 'out2_mse', 'loss', 'val_loss'])
+analyze_object.correlate('val_loss', ['Density_mse', 'GSD_mse', 'loss', 'val_loss'])
 
 
 # line plot
@@ -91,7 +91,7 @@ analyze_object.plot_kde('val_loss')
 analyze_object.plot_hist('val_loss', bins=50)
 
 # heatmap correlation
-analyze_object.plot_corr('val_loss', ['out1_mse', 'out2_mse', 'loss', 'val_loss'])
+analyze_object.plot_corr('val_loss', ['Density_mse', 'GSD_mse', 'loss', 'val_loss'])
 
 # a four dimensional bar grid
 analyze_object.plot_bars('epochs', 'val_loss', 'activation', 'optimizer')
@@ -100,7 +100,7 @@ analyze_object.plot_bars('learningRate', 'val_loss', 'activation', 'optimizer')
 
 scan_object.print_params()
 
-r = talos.Reporting('experimental_log_1.csv')
+r = talos.Reporting('experimental_log_2.csv')
 r.data
 r.low('val_loss')
 

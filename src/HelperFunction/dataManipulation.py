@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 import keras.backend as K
 from tensorflow import keras
 import talos
-import tensorflow_docs as tfdocs
+# import tensorflow_docs as tfdocs
 
 from tensorflow_docs import modeling
-
+from math import exp
 from keras import regularizers, layers, initializers
 from keras.layers import Dense, Input, Concatenate, Dropout, Conv2D
 from keras.models import Model, Sequential
@@ -27,7 +27,7 @@ from keras.initializers import glorot_normal, normal
 from talos.model.normalizers import lr_normalizer
 
 class HelperFunction:
-    def __init__(self, dataFile, sieveCut, frac=0.8, yieldStrength=1e4):
+    def __init__(self, dataFile, sieveCut, frac=0.8, yieldStrength=1e5):
         self.sieveCut = sieveCut
         self.dataFile = dataFile
         self.yieldStrength = yieldStrength
@@ -264,8 +264,8 @@ class HelperFunction:
         label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
         model = Model(inputs=[input_layer], outputs=[output_1,output_2])
 
-        # model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.001, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.1,beta_2=0.2,epsilon=0.01,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=SGD(learning_rate=0.01,momentum=0.001, nesterov=False),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        # model.compile(optimizer=Adam(learning_rate=0.001,beta_1=0.1,beta_2=0.2,epsilon=0.01,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
         
         w1 = np.full(len(self.normed_train_dataset),10)
         w2 = np.full(len(self.normed_train_dataset),1)
@@ -308,25 +308,30 @@ class HelperFunction:
     def build_train_PINN_l2_dropout(self,normed_train_dataset, train_labels, patience_model, nOutput, nNodes=16, actFn='relu', EPOCHS=100,learnRate=0.001,momentumN=0.0,lastActFn='linear',regCons=0.0,doRate=0.0):
         input_layer = Input(shape=(len(normed_train_dataset.keys()),))
         dense_1 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(input_layer)
+        # dense_1 = Dense(nNodes, activation=actFn)(input_layer)
         # dense_1 = Dropout(doRate)(dense_1)
         dense_2 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(dense_1)
-        dense_2 = Dropout(doRate)(dense_2)
+        # dense_2 = Dense(nNodes, activation=actFn)(dense_1)
+        # dense_2 = Dropout(doRate)(dense_2)
         dense_3 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l2(regCons))(dense_2)
+        # dense_3 = Dense(nNodes, activation=actFn)(dense_2)
         # dense_3 = Dropout(doRate)(dense_3)
-        dense_4 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(dense_3)
-        dense_4 = Dropout(doRate)(dense_4)
+        # dense_4 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l2(regCons))(dense_3)
+        # dense_4 = Dense(nNodes, activation=actFn)(dense_3)
+        # dense_4 = Dropout(doRate)(dense_4)
         # dense_5 = Dense(nNodes, activation=actFn,activity_regularizer=regularizers.l1(regCons))(dense_4)
         # # dense_5 = Dropout(doRate)(dense_5)
         # dense_6 = Dense(nNodes, activation=actFn, activity_regularizer=regularizers.l1(regCons))(dense_5)
         # dense_6 = Dropout(doRate)(dense_6)
         # dense_11 = Dropout(doRate)(dense_11)
         # separating outputs for density and GSD for custom loss function
-        output_1 = Dense(1,activation=lastActFn,name='out1', activity_regularizer=regularizers.l1(regCons))(dense_4)
+        output_1 = Dense(1,activation=self.mapping_to_target_range_density,name='Density', activity_regularizer=regularizers.l2(regCons))(dense_3)
         # output_2 = Dense(8,activation='sigmoid',name='out2')(dense_2)
         # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2',activity_regularizer=regularizers.l1(regCons))(dense_11)
         # output_2 = Dense(8,activation='sigmoid',name='out2',activity_regularizer=regularizers.l1(regCons))(dense_4)
-        output_2 = Dense(8,activation=lastActFn,name='out2', activity_regularizer=regularizers.l1(regCons))(dense_4)
-        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='out2')(dense_4) 
+        # output_2 = Dense(8,activation=self.mapping_to_target_range,name='GSD', activity_regularizer=regularizers.l2(0.0008))(dense_3)
+        # output_2 = Dense(8,activation=lastActFn,name='out2')(dense_4)s
+        output_2 = Dense(8,activation=self.mapping_to_target_range,name='GSD')(dense_3) 
         
         train_labels_copy = pd.DataFrame.copy(train_labels)
         label1 = train_labels['Granule_density']
@@ -336,10 +341,10 @@ class HelperFunction:
         label2 = pd.DataFrame([train_labels_copy.pop(i) for i in labels]).T
         model = Model(inputs=[input_layer], outputs=[output_1,output_2])
         
-        model.compile(optimizer=SGD(learning_rate=learnRate,momentum=momentumN, nesterov=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
-        # model.compile(optimizer=Adam(learning_rate=0.0001,beta_1=0.1,beta_2=0.2,epsilon=0.001,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        # model.compile(optimizer=SGD(learning_rate=learnRate,momentum=momentumN, nesterov=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
+        model.compile(optimizer=Adam(learning_rate=learnRate,amsgrad=True),loss=self.lossFunc_DensityStde(output_1), metrics = ['mae','mse'])
         
-        w1 = np.full(len(self.normed_train_dataset),5)
+        w1 = np.full(len(self.normed_train_dataset),1)
         w2 = np.full(len(self.normed_train_dataset),1)
         print(model.summary())
         history = model.fit(normed_train_dataset, [label1, label2], epochs=EPOCHS, 
@@ -431,14 +436,12 @@ class HelperFunction:
         
     
     def stdeCalculation(self,dataFile):
-        particleDensity = np.array(dataFile['solidDensity'])
+        particleDensity = (np.array(dataFile['solidDensity']))
         dImp = np.array(dataFile['impellerDiameter'])
         rpm = np.array(dataFile['rpm'])
         bins = np.array((dataFile[['Bin1','Bin2','Bin3','Bin4','Bin5','Bin6','Bin7','Coarse']]).values)
         yS = np.full((len(particleDensity),), 2 * self.yieldStrength)
         l = (len(particleDensity),)
-        d50 = self.d50FromPSDCalculator(bins)*1e-2
-        dataFile['d50'] = d50
         a = np.full(l,((np.pi * 0.15) / 60))
         # nParticles = np.divide(particleDensity,((4/3)*np.pi*np.power(d50/2,3)))
         Uc = np.multiply(a,np.multiply(rpm,dImp))# shear=pi*rpm*diameter/60
@@ -449,8 +452,8 @@ class HelperFunction:
         return dataFile
     
     def smaxCalculation(self,dataFile):
-        particleDensity = np.array(dataFile['solidDensity'])
-        solidWt = np.array(dataFile['batch_amount'])
+        particleDensity = np.array(dataFile['solidDensity']) 
+        solidWt = np.array(dataFile['batch_amount']) / 1000
         liqWt = np.array(dataFile['liq_amount'])
         # iniPor = np.array(self.dataFile['Initial_Porosity'])
         minPorVal = 0.18
@@ -458,7 +461,7 @@ class HelperFunction:
         liqDen = 1000
         n1 = (1 - minPor) # part of numerator
         d1 = liqDen * minPor # demonimator
-        w = np.divide(liqWt, solidWt)
+        w = np.multiply(0.4, solidWt)
         num = np.multiply(w,np.multiply(particleDensity,n1))
         smax = np.divide(num,d1)
         dataFile['Smax'] = smax
@@ -471,9 +474,9 @@ class HelperFunction:
         dataFile1 = self.stdeCalculation(dataFile)
         # dataFile1 = self.trainingdata
         dataFile1 = dataFile1.dropna()
-        dataFile1 = dataFile1[dataFile1['StDe'] <= 0.2]  
+        dataFile1 = dataFile1[dataFile1['StDe'] <= (0.1)]  
         dataFile1 = dataFile1.drop(columns=['StDe'])
-        dataFile1 = dataFile1.drop(columns=['d50'])
+        # dataFile1 = dataFile1.drop(columns=['d50'])
         # self.trainingdata.drop(columns=['StDe'])
         # self.trainingdata.drop(columns=['d50'])
         return dataFile1
@@ -485,11 +488,11 @@ class HelperFunction:
         dataFile1 = self.smaxCalculation(dataFile)
         # dataFile1 = self.trainingdata
         dataFile1 = dataFile1.dropna()
-        dataFile1 = dataFile1[dataFile1['StDe'] <= 0.2]
-        dataFile1 = dataFile1[dataFile1['Smax'] >= 0.2]
+        dataFile1 = dataFile1[dataFile1['StDe'] <= (0.1)]
+        dataFile1 = dataFile1[dataFile1['Smax'] <= 1]
         dataFile1 = dataFile1.drop(columns=['StDe'])
         dataFile1 = dataFile1.drop(columns=['Smax'])
-        dataFile1 = dataFile1.drop(columns=['d50'])
+        # dataFile1 = dataFile1.drop(columns=['d50'])
         return dataFile1
     
     
@@ -497,8 +500,8 @@ class HelperFunction:
     def lossFunc_StdeSmax(self,yTrue,yPred):
         dataFile1 = self.stdeCalculation() # get values StDE calculated
         stdeVal = np.array(dataFile1['StDe']) # separating out the StDe values into an numpy array
-        stError = stdeVal[stdeVal>0.2]
-        stError = (stError - 0.2) / len(stError)
+        stError = stdeVal[stdeVal>0.1]
+        stError = (stError - 0.1) / len(stError)
         dataFile1 = self.smaxCalculation()
         smax = np.array(dataFile1['Smax'])
         smaxError = smax[smax<0.5]
@@ -519,8 +522,8 @@ class HelperFunction:
             Ys = np.array(Ys)
             b = np.power(Uc,2)
             c = K.cast_to_floatx(np.multiply(Ys,b))
-            d = K.cast_to_floatx(np.full(len(Uc),0.2))
-            rho_comp = K.cast_to_floatx(np.divide(d,c))
+            d = K.cast_to_floatx(np.full(len(Uc),(0.1)))
+            rho_comp = K.cast_to_floatx(np.divide(np.divide(d,c),1000))
             # StDe = K.mul
             rho_l = rho_comp - output_1
             rho_l = rho_l[rho_l < 0]
@@ -531,8 +534,8 @@ class HelperFunction:
         return loss
               
     def stdePreCalc(self):
-       dImp = np.array(self.trainingdata['impellerDiameter'])
-       rpm = np.array(self.trainingdata['rpm'])
+       dImp = (np.array(self.trainingdata['impellerDiameter'])*0.625) + 0.125
+       rpm = (np.array(self.trainingdata['rpm'])*500) + 100
        m = np.multiply(rpm,dImp)
        l = len(rpm)
        a = np.full(l,((np.pi * 0.15) / 60))
@@ -558,12 +561,16 @@ class HelperFunction:
         r2 = 1 - (SSres.sum() / SStol.sum())          
         return r2
         
-    def mapping_to_target_range(self, x, target_min=0.2, target_max=1.5):
-        x02 = K.relu(x)
+    def mapping_to_target_range(self, x, target_min=0.02, target_max=0.95):
+        x02 = (x)
         scale = (target_max-target_min)
         return  (x02) * scale + target_min
         # return  x02 + target_min
-    
+      
+    def mapping_to_target_range_density(self, x, target_min=0.3, target_max=0.8):
+        x02 = (x)
+        scale = (target_max-target_min)
+        return  (x02) * scale + target_min
         
 # dataFile = pd.read_csv('./PBM_simData_noSieve.csv')    
 
