@@ -34,14 +34,14 @@ pinn_train_data, pinn_train_labels, pinn_test_data, pinn_test_labels = pinnMod.n
 PINN_name = 'PINN model'
 
 hyperparameters = {
-    "epochs": [200,400], 
+    "epochs": [200,300,500], 
     "activation": ['tanh','relu'],
     "last_activation": ['linear'],
-    "nNodes": [8,16,32],
-    "learningRate": [0.003,0.0003,0.03],
-    "dropRate": [0.0,0.25,0.5],
-    "regCons": [0.0,0.0001],
-    "patienceModel": [10],
+    "nNodes": [8,16],
+    "learningRate": [0.03,0.3,0.003],
+    "dropRate": [0.0,0.2 ],
+    "regCons": [0.0],
+    "patienceModel": [10,50],
     "optimizer": [Adam,SGD]
 }
 
@@ -98,11 +98,11 @@ analyze_object.plot_bars('epochs', 'val_loss', 'activation', 'optimizer')
 analyze_object.plot_bars('nNodes', 'val_loss', 'activation', 'optimizer')
 analyze_object.plot_bars('learningRate', 'val_loss', 'activation', 'optimizer')
 
-scan_object.print_params()
+# scan_object.print_params()
 
-r = talos.Reporting('experimental_log_2.csv')
-r.data
-r.low('val_loss')
+# r = talos.Reporting('experimental_log_test.csv')
+# r.data
+# r.low('val_loss')
 
-r.plot_hist
+# r.plot_hist
 plt.show()

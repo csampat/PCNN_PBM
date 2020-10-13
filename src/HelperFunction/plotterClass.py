@@ -60,12 +60,14 @@ class PlotterClass:
         
 
     def history_plotter_comparen(self,history, name, valname, modelname):
+        fig=plt.figure()
+        fig.set_size_inches(15, 15)
         plt.rcParams.update({'font.size': 16})
         for hist in history:
             plt.plot(hist.history[name])
             plt.plot(hist.history[valname],'--')
         
-        plt.title(name)
+        # plt.title(name)
         plt.rcParams.update({'font.size': 16})
         plt.xlabel('epoch')
         plt.ylabel(name)
@@ -80,17 +82,18 @@ class PlotterClass:
 
 
     def history_plotter_comparen_noval(self,history, name, modelname):
+
         for hist in history:
             plt.plot(hist.history[name])
-        plt.rcParams.update({'font.size': 16})
-        plt.title(name)
+        plt.rcParams.update({'font.size': 18})
+        # plt.title(name)
         plt.xlabel('epoch')
         plt.ylabel(name)
         legstr = []
         for model in modelname:
             str1 = model + ' train'
             legstr.append(str1)
-        plt.legend(legstr, loc='upper right')
+        plt.legend(legstr, loc='best')
     
     def parityPlot(self,test_data,test_predictions,title):
         plt.axes(aspect='equal')
@@ -148,7 +151,7 @@ class PlotterClass:
             plt.plot(sieveCut,pltTest1,'bo')
             plt.plot(sieveCut,pltTest2,'bo')
             plt.xlabel('Sieve Fraction')
-            plt.ylabel('Cummulative PSD')
+            plt.ylabel('Cummulative GSD')
             plt.title(str(idx))
             plt.legend(legend, loc='lower right')
             
@@ -168,12 +171,13 @@ class PlotterClass:
             # plt.plot(sieveCut,pltTest3,'bo')
             plt.xlabel('Sieve Fraction')
             plt.ylabel('Cummulative PSD')
-            plt.title(str(idx))
+            # plt.title(str(idx))
             plt.legend(legend, loc='lower right')
             
     def expDataPlot_comparen(self,test_conv, test_labels1, testIdx,sieveCut,legend):
-        fig, ax = plt.subplots(int(len(testIdx)/2), 2, sharey=True)
-        plt.rcParams.update({'font.size': 16})
+        fig, ax = plt.subplots(int(len(testIdx)/2), 2, sharey=True, sharex=True)
+        plt.rcParams.update({'font.size': 12})
+        fig.set_size_inches(15, 15)
         counter = 0
         col=0
         for idx in testIdx:
@@ -188,7 +192,7 @@ class PlotterClass:
             # plt.plot(sieveCut,pltTest3,'bo')
             ax[counter,col].set_xlabel('Sieve Fraction')
             ax[counter,col].set_ylabel('Cummulative PSD')
-            ax[counter,col].title.set_text(str(idx))
+            # ax[counter,col].title.set_text(str(idx))
             if (counter < 2):
                 counter = counter + 1
             else:
@@ -209,7 +213,7 @@ class PlotterClass:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(names)
         ax.yaxis.grid(True)
-        ax.set_title(dictName)
+        # ax.set_title(dictName)
 
         plt.savefig(dictName+'.png')
 

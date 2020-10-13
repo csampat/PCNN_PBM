@@ -106,3 +106,5 @@ plotObj.sensPlot_2(S_bin5,samplesize['names'],'Bin5')
 plotObj.sensPlot_2(S_bin6,samplesize['names'],'Bin6')
 plotObj.sensPlot_2(S_bin7,samplesize['names'],'Bin7')
 plotObj.sensPlot_2(S_bin8,samplesize['names'],'Bin8')
+
+plt.show()
