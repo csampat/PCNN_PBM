@@ -62,7 +62,7 @@ class PlotterClass:
     def history_plotter_comparen(self,history, name, valname, modelname):
         fig=plt.figure()
         fig.set_size_inches(15, 15)
-        plt.rcParams.update({'font.size': 16})
+        plt.rcParams.update({'font.size': 18})
         for hist in history:
             plt.plot(hist.history[name])
             plt.plot(hist.history[valname],'--')
@@ -74,7 +74,7 @@ class PlotterClass:
         legstr = []
         for model in modelname:
             str1 = model + ' train'
-            str2 = model + ' test'
+            str2 = model + ' validation'
             legstr.append(str1)
             legstr.append(str2)
         plt.legend(legstr, loc='upper right')
@@ -101,7 +101,7 @@ class PlotterClass:
         plt.scatter(test_data,test_predictions)
         plt.title(title + ' Parity Plot')
         plt.xlabel('True Values')
-        plt.ylabel('Predictions')
+        plt.ylabel('Predicted Values')
         plt.rcParams.update({'font.size': 16})
         # lims = [np.floor(min(test_data)), np.round(max(test_data),decimals=0)]
         lims = [0,1]
@@ -119,7 +119,7 @@ class PlotterClass:
         plt.scatter(test, predicitons)
         plt.title(title + ' Density Parity Plot')
         plt.xlabel('True Values')
-        plt.ylabel('Predictions')
+        plt.ylabel('Predicted Values')
         # lims = [np.floor(min(test_data)), np.round(max(test_data),decimals=0)]
         lims = [0,1]
         plt.xlim(lims)
@@ -134,7 +134,7 @@ class PlotterClass:
             plt.figure()
             plt.plot(sieveCut,test_conv[idx][1:8],'-')
             plt.plot(sieveCut,pltTest,'bo')
-            plt.xlabel('Sieve Fraction')
+            plt.xlabel('Sieve Cut ($\mu$m)')
             plt.ylabel('Cummulative PSD')
             plt.legend(legend, loc='lower right')
             plt.title(str(idx))
@@ -150,7 +150,7 @@ class PlotterClass:
             plt.plot(sieveCut,test_conv2[idx][:7],'-')
             plt.plot(sieveCut,pltTest1,'bo')
             plt.plot(sieveCut,pltTest2,'bo')
-            plt.xlabel('Sieve Fraction')
+            plt.xlabel('Sieve Cut ($\mu$m)')
             plt.ylabel('Cummulative GSD')
             plt.title(str(idx))
             plt.legend(legend, loc='lower right')
@@ -169,8 +169,9 @@ class PlotterClass:
             plt.plot(sieveCut,pltTest1,'bo')
             # plt.plot(sieveCut,pltTest2,'bo')
             # plt.plot(sieveCut,pltTest3,'bo')
-            plt.xlabel('Sieve Fraction')
+            plt.xlabel('Sieve Cut ($\mu$m)')
             plt.ylabel('Cummulative PSD')
+            plt.ylim((0,1.05))
             # plt.title(str(idx))
             plt.legend(legend, loc='lower right')
             
@@ -190,7 +191,7 @@ class PlotterClass:
             ax[counter,col].plot(sieveCut,pltTest1,'bo')
             # plt.plot(sieveCut,pltTest2,'bo')
             # plt.plot(sieveCut,pltTest3,'bo')
-            ax[counter,col].set_xlabel('Sieve Fraction')
+            ax[counter,col].set_xlabel('Sieve Cut ($\mu$m)')
             ax[counter,col].set_ylabel('Cummulative PSD')
             # ax[counter,col].title.set_text(str(idx))
             if (counter < 2):
@@ -198,7 +199,7 @@ class PlotterClass:
             else:
                 counter = 0
                 col = 1
-           
+        plt.ylim((0,1.05))
         plt.legend(legend, loc='lower right')
         plt.savefig('ExpDataComparisonPlot.png')
 
@@ -213,7 +214,7 @@ class PlotterClass:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(names)
         ax.yaxis.grid(True)
-        # ax.set_title(dictName)
+        ax.set_title(dictName)
 
         plt.savefig(dictName+'.png')
 
