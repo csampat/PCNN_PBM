@@ -29,7 +29,7 @@ reload_pinnModel = load_model(pinnModel,compile=False)
 
 samplesize = {
     'num_vars':6,
-    'names': ['BA','LA','RPM','ID','SD','IP'],
+    'names': ['BA','LA','RPM','ID','IGD','IP'],
     'bounds': [[800, 2000],
                [600, 1200],
                [100, 600],

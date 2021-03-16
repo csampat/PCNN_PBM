@@ -18,9 +18,6 @@ import tensorflow_docs as tfdocs
 import tensorflow_docs.modeling
 import tensorflow_docs.plots
 from tensorflow import keras
-
-import kerastuner as kt
-
 from HelperFunction import dataManipulation
 from HelperFunction import plotterClass
 
@@ -49,9 +46,9 @@ nOutDensity = 9
 # creating separate datafiles so as to not affect data
 
 normed_train_dataset, train_labels, normed_test_dataset, test_labels = simMod.normed_train_dataset, simMod.train_labels, simMod.normed_test_dataset, simMod.test_labels
-red_dataFile = stref.stdeBasedDataRemoval()
+red_dataFile = stref.stdeBasedDataRemoval(dataFile)
 red_normed_train_dataset, red_train_labels, red_norm_test_dataset, red_test_labels = stref.normedDataSplitWithDensity(red_dataFile)
-redsmax_dataFile = stsmaxred.stdesmaxDataRemoval()
+redsmax_dataFile = stsmaxred.stdesmaxDataRemoval(dataFile )
 redsmax_normed_train_dataset, redsmax_train_labels, redsmax_norm_test_dataset, redsmax_test_labels = stsmaxred.normedDataSplitWithDensity(redsmax_dataFile)
 dens_normed_train_dataset, dens_train_labels, dens_normed_test_dataset, dens_test_labels = densMod.normed_train_dataset, densMod.train_labels, densMod.normed_test_dataset, densMod.test_labels
 
@@ -64,7 +61,7 @@ model3 = 'StDe + Smax refined '
 # model5 = 'PINN with StDe and Smax '
 # model6 = 'Sieve + Density '
 model7 = 'PINN with L2'
-model8 = 'PINN with L1'
+model8 = 'PINN'
 # model9 = 'PINN for density'
 # model10 = 'ANN for PSD'
 
@@ -128,7 +125,7 @@ r2model_smax = stsmaxred.calculateR2(test_predictions_smax, test_labels,labels)
 
 
 '''
-EPOCHS = 200
+EPOCHS = 400
 
 ###### NEW PINN #############
 '''
@@ -136,7 +133,7 @@ PINNdens_model, PINNdens_history = densMod.build_train_PINN_l2_dropout(dens_norm
 m7Time = time.time()
 '''
 
-PINNdens_model_32, PINNdens_history = densMod.build_train_PINN_l1_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,16,'tanh',EPOCHS)
+PINNdens_model_32, PINNdens_history = densMod.build_train_PINN_l2_dropout(dens_normed_train_dataset,dens_train_labels,patience_model,nOutDensity,16,'tanh',EPOCHS)
 m8Time = time.time()
 
  
@@ -268,7 +265,7 @@ print("--------All models were saved successfully--------")
 # All plots start here
 # comparing 3 models
 plt.figure()
-plotObj.history_plotter_comparen_noval([history, stref_history,smaxref_history,PINNdens_history], 'loss', [model1, model2, model3,model8])
+plotObj.history_plotter_comparen([history, stref_history,smaxref_history,PINNdens_history], 'loss','val_loss', [model1, model2, model3,model8])
 
 # plt.figure()
 # plotObj.parityPlot_dens(test_labels, test_predictions_densPINN, model7)
